@@ -155,9 +155,6 @@ project/
 │   ├── exceptions.py         # Custom exceptions
 │   └── constants.py          # Constants & enums
 │
-├── api/                       # Main API app
-│   └── v1/                   # API version
-│
 ├── tests/                     # Test configuration
 │   ├── conftest.py           # pytest fixtures
 │   └── factories.py          # Test factories
