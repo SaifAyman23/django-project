@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from accounts.viewsets import UserViewSet, CustomTokenObtainPairView
+from .views import UserViewSet, CustomTokenObtainPairView
 
 router = DefaultRouter()
 router.register(r"users", UserViewSet, basename="user")

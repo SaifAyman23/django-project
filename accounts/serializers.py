@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
-from common.serializers import BaseSerializer
+from common.serializers import AuditableSerializer
 
 User = get_user_model()
 
@@ -31,7 +31,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
 
-class UserDetailSerializer(BaseSerializer):
+class UserDetailSerializer(AuditableSerializer):
     """User details"""
     class Meta:
         model = User

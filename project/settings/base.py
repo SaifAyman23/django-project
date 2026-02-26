@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import logging.config
+from .unfold_config import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -55,9 +56,9 @@ INSTALLED_APPS = [
     "channels",
     "django_celery_beat",
     "django_celery_results",
-    
+
     # Local apps
-    # "accounts",
+    "accounts",
     "common",
 ]
 
@@ -181,7 +182,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ),
-    "DEFAULT_PAGINATION_CLASS": "common.pagination.CustomPagination",
+    "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -372,37 +373,6 @@ SPECTACULAR_SETTINGS = {
 }
 
 # ===========================
-# Django Unfold Admin (0.42.0)
-# ===========================
-UNFOLD = {
-    "SITE_HEADER": "Project Admin",
-    "SITE_TITLE": "Project Administration",
-    "SITE_URL": "/",
-    "SIDEBAR": {
-        "show": True,
-        "navigation": [
-            {
-                "title": "Authentication",
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Users",
-                        "icon": "person",
-                        "link": "/admin/auth/user/",
-                    },
-                    {
-                        "title": "Groups",
-                        "icon": "group",
-                        "link": "/admin/auth/group/",
-                    },
-                ],
-            },
-        ],
-    },
-}
-
-# ===========================
 # Security Settings
 # ===========================
 SECURE_CONTENT_SECURITY_POLICY = {
@@ -410,3 +380,4 @@ SECURE_CONTENT_SECURITY_POLICY = {
 }
 
 # CSRF_FAILURE_VIEW = "common.views.csrf_failure"
+

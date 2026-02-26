@@ -1,9 +1,16 @@
-from functools import wraps, lru_cache
+import logging
+import hashlib
+
+from django.core.cache import cache
+from typing import TypeVar, Callable
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 # ===========================
 # Caching Decorators
 # ===========================
-
 def cache_result(timeout: int = 300):
     """Cache function result"""
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
