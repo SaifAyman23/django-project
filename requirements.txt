@@ -1,7 +1,7 @@
 # ===========================
 # Core Django (6.0 - Latest)
 # ===========================
-Django==6.0.2
+Django==5.2
 djangorestframework==3.16.1
 
 # ===========================
@@ -20,14 +20,14 @@ django-unfold==0.42.0
 # ===========================
 # Real-time & Async Communication
 # ===========================
-django-channels==4.1.1
-channels-redis==4.1.1
+# django-channels==4.1.1
+# channels-redis==4.1.1
 
 # ===========================
 # Task Queue & Scheduling
 # ===========================
 celery==5.6.2
-django-celery-beat==2.6.0
+django-celery-beat==2.8.0
 django-celery-results==2.5.1
 kombu==5.6.0
 

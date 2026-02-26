@@ -844,6 +844,26 @@ footer a:hover { color: var(--accent); }
   color: var(--text-primary);
   font-weight: 500;
 }
+
+/* Simple & Clean */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f100;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 </style>
 </head>
 <body data-theme="light">
@@ -854,8 +874,8 @@ footer a:hover { color: var(--accent); }
       <h1>Django<span style="font-style: normal; font-family: var(--font-code); font-size: 0.5em; display: block; margin-top: var(--sp-1);">6.0</span></h1>
       <p>Complete Guide 2026</p>
       <div class="theme-toggle">
-        <button class="theme-btn active" onclick="setTheme('light')">☀️ Light</button>
-        <button class="theme-btn" onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="theme-btn active" onclick="setTheme('light')">Light</button>
+        <button class="theme-btn" onclick="setTheme('dark')">Dark</button>
       </div>
     </div>
 
