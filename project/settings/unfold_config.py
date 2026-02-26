@@ -1,159 +1,279 @@
-# settings.py
+# settings.py - Updated with Django 6.0 Theme for django-unfold
+# Dark Mode Only - Production Ready Configuration
 
 from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
+######################################################################
+# Unfold
+######################################################################
 UNFOLD = {
-    "SITE_TITLE": "Custom suffix in <title> tag",
-    "SITE_HEADER": "Appears in sidebar at the top",
-    "SITE_SUBHEADER": "Appears under SITE_HEADER",
+    "STUDIO": {
+        # "header_sticky": True,
+        # "layout_style": "boxed",
+        # "header_variant": "dark",
+        # "sidebar_style": "minimal",
+        # "sidebar_variant": "dark",
+        # "site_banner": "Custom global message",
+    },
+    "SITE_TITLE": _("Dashboard Admin"),
+    "SITE_HEADER": _("Dashboard Admin"),
+    "SITE_SUBHEADER": _("Unfold demo project"),
+    "SITE_SYMBOL": "dashboard",
+    "SITE_ICON": lambda request: static("dashboard/images/logo.svg"),
+    # "SITE_URL": None,
     "SITE_DROPDOWN": [
         {
             "icon": "diamond",
-            "title": _("My site"),
-            "link": "https://example.com",
+            "title": _("Unfold theme repository"),
+            "link": "https://github.com/unfoldadmin/django-unfold",
         },
-        # ...
-    ],
-    "SITE_URL": "/",
-    # "SITE_ICON": lambda request: static("icon.svg"),  # both modes, optimise for 32px height
-    "SITE_ICON": {
-        "light": lambda request: static("icon-light.svg"),  # light mode
-        "dark": lambda request: static("icon-dark.svg"),  # dark mode
-    },
-    # "SITE_LOGO": lambda request: static("logo.svg"),  # both modes, optimise for 32px height
-    "SITE_LOGO": {
-        "light": lambda request: static("logo-light.svg"),  # light mode
-        "dark": lambda request: static("logo-dark.svg"),  # dark mode
-    },
-    "SITE_SYMBOL": "speed",  # symbol from icon set
-    "SITE_FAVICONS": [
         {
-            "rel": "icon",
-            "sizes": "32x32",
-            "type": "image/svg+xml",
-            "href": lambda request: static("favicon.svg"),
+            "icon": "rocket_launch",
+            "title": _("Turbo boilerplate repository"),
+            "link": "https://github.com/unfoldadmin/turbo",
+        },
+        {
+            "icon": "description",
+            "title": _("Technical documentation"),
+            "link": "https://unfoldadmin.com/docs/",
         },
     ],
-    "SHOW_HISTORY": True, # show/hide "History" button, default: True
-    "SHOW_VIEW_ON_SITE": True, # show/hide "View on site" button, default: True
-    "SHOW_BACK_BUTTON": False, # show/hide "Back" button on changeform in header, default: False
-    "ENVIRONMENT": "common.environment_callback", # environment name in header
-    "ENVIRONMENT_TITLE_PREFIX": "common.environment_title_prefix_callback", # environment name prefix in title tag
-    "DASHBOARD_CALLBACK": "common.dashboard_callback",
-    "THEME": "dark", # Force theme: "dark" or "light". Will disable theme switcher
+    # "SHOW_HISTORY": True,
+    "SHOW_LANGUAGES": True,
+    "LANGUAGE_FLAGS": {
+        "de": "🇩🇪",
+        "en": "🇺🇸",
+    },
+    "ENVIRONMENT": "dashboard.utils.environment_callback",
+    "DASHBOARD_CALLBACK": "dashboard.views.dashboard_callback",
     "LOGIN": {
-        "image": lambda request: static("sample/login-bg.jpg"),
-        "redirect_after": lambda request: reverse_lazy("admin:common_customuser_changelist"),
-        # Inherits from `unfold.forms.AuthenticationForm`
-        "form": "app.forms.CustomLoginForm",
+        "image": lambda request: static("dashboard/images/login-bg.jpg"),
+        "form": "dashboard.forms.LoginForm",
     },
-    # "STYLES": [
-    #     lambda request: static("css/style.css"),
-    # ],
-    "SCRIPTS": [
-        lambda request: static("js/script.js"),
+    "STYLES": [
+        # lambda request: static("css/styles.css"),
     ],
-    "BORDER_RADIUS": "6px",
-    "COLORS": {
-        "base": {
-            "50": "oklch(98.5% .002 247.839)",
-            "100": "oklch(96.7% .003 264.542)",
-            "200": "oklch(92.8% .006 264.531)",
-            "300": "oklch(87.2% .01 258.338)",
-            "400": "oklch(70.7% .022 261.325)",
-            "500": "oklch(55.1% .027 264.364)",
-            "600": "oklch(44.6% .03 256.802)",
-            "700": "oklch(37.3% .034 259.733)",
-            "800": "oklch(27.8% .033 256.848)",
-            "900": "oklch(21% .034 264.665)",
-            "950": "oklch(13% .028 261.692)",
+    "SCRIPTS": [
+        # lambda request: static("js/chart.min.js"),
+    ],
+    "TABS": [
+        {
+            "models": [
+                "dashboard.race",
+                "dashboard.constructor",
+            ],
+            "items": [
+                {
+                    "title": _("Races"),
+                    "link": reverse_lazy("admin:dashboard_race_changelist"),
+                },
+                {
+                    "title": _("Constructors"),
+                    "link": reverse_lazy("admin:dashboard_constructor_changelist"),
+                },
+            ],
         },
-        "primary": {
-            "50": "oklch(97.7% .014 308.299)",
-            "100": "oklch(94.6% .033 307.174)",
-            "200": "oklch(90.2% .063 306.703)",
-            "300": "oklch(82.7% .119 306.383)",
-            "400": "oklch(71.4% .203 305.504)",
-            "500": "oklch(62.7% .265 303.9)",
-            "600": "oklch(55.8% .288 302.321)",
-            "700": "oklch(49.6% .265 301.924)",
-            "800": "oklch(43.8% .218 303.724)",
-            "900": "oklch(38.1% .176 304.987)",
-            "950": "oklch(29.1% .149 302.717)",
+        {
+            "page": "drivers",
+            "models": ["dashboard.driver"],
+            "items": [
+                {
+                    "title": _("Drivers"),
+                    "link": reverse_lazy("admin:dashboard_driver_changelist"),
+                    "active": lambda request: request.path
+                    == reverse_lazy("admin:dashboard_driver_changelist")
+                    and "status__exact" not in request.GET,
+                },
+                {
+                    "title": _("Active drivers"),
+                    "link": lambda request: f"{
+                        reverse_lazy('admin:dashboard_driver_changelist')
+                    }?status__exact=ACTIVE",
+                },
+                {
+                    "title": _("Crispy Form"),
+                    "link": reverse_lazy("admin:crispy_form"),
+                },
+                {
+                    "title": _("Crispy Formset"),
+                    "link": reverse_lazy("admin:crispy_formset"),
+                },
+            ],
         },
-        "font": {
-            "subtle-light": "var(--color-base-500)",
-            "subtle-dark": "var(--color-base-400)",
-            "default-light": "var(--color-base-600)",
-            "default-dark": "var(--color-base-300)",
-            "important-light": "var(--color-base-900)",
-            "important-dark": "var(--color-base-100)",
-        },
-    },
-    "EXTENSIONS": {
-        "modeltranslation": {
-            "flags": {
-                "en": "🇬🇧",
-                "fr": "🇫🇷",
-                "nl": "🇧🇪",
-            },
-        },
+    ],
+    "COMMAND": {
+        "search_models": "dashboard.utils.search_models_callback",
+        "show_history": "dashboard.utils.show_history_callback",
     },
     "SIDEBAR": {
-        "show_search": False,  # Search in applications and models names
-        "command_search": False,  # Replace the sidebar search with the command search
-        "show_all_applications": False,  # Dropdown with all applications and models
+        "show_search": True,
+        "show_all_applications": True,
+        "command_search": True,
         "navigation": [
             {
                 "title": _("Navigation"),
-                "separator": True,  # Top border
-                "collapsible": True,  # Collapsible group of links
                 "items": [
                     {
                         "title": _("Dashboard"),
-                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
+                        "icon": "dashboard",
                         "link": reverse_lazy("admin:index"),
-                        "badge": "common.badge_callback",
-                        "badge_variant": "info", # info, success, warning, primary, danger
-                        "badge_style": "solid", # background fill style
-                        "permission": lambda request: request.user.is_superuser,
                     },
                     {
+                        "title": _("Drivers"),
+                        "icon": "sports_motorsports",
+                        "active": "dashboard.utils.driver_list_link_callback",
+                        ###########################################################
+                        # Works only with Studio: https://unfoldadmin.com/studio/
+                        ###########################################################
+                        "items": [
+                            {
+                                "title": _("List drivers"),
+                                "link": reverse_lazy("admin:dashboard_driver_changelist"),
+                                "active": "dashboard.utils.driver_list_sublink_callback",
+                            },
+                            {
+                                "title": _("Advanced filters"),
+                                "link": reverse_lazy(
+                                    "admin:dashboard_driverwithfilters_changelist"
+                                ),
+                            },
+                            {
+                                "title": _("Crispy form"),
+                                "link": reverse_lazy("admin:crispy_form"),
+                            },
+                            {
+                                "title": _("Crispy formset"),
+                                "link": reverse_lazy("admin:crispy_formset"),
+                            },
+                        ],
+                    },
+                    {
+                        "title": _("Circuits"),
+                        "icon": "sports_score",
+                        "link": reverse_lazy("admin:dashboard_circuit_changelist"),
+                    },
+                    {
+                        "title": _("Races"),
+                        "icon": "stadium",
+                        "link": reverse_lazy("admin:dashboard_race_changelist"),
+                        "badge": "dashboard.utils.badge_callback",
+                        "badge_variant": "danger",
+                        "badge_style": "solid",
+                    },
+                    {
+                        "title": _("Standings"),
+                        "icon": "trophy",
+                        "link": reverse_lazy("admin:dashboard_standing_changelist"),
+                        "permission": "dashboard.utils.permission_callback",
+                        # "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": _("Constance"),
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:constance_config_changelist"),
+                        "badge": _("New"),
+                        "badge_variant": "primary",
+                    },
+                ],
+            },
+            {
+                "title": _("Users & Groups"),
+                "collapsible": True,
+                "items": [
+                    {
                         "title": _("Users"),
-                        "icon": "people",
-                        "link": reverse_lazy("admin:common_customuser_changelist"),
+                        "icon": "account_circle",
+                        "link": reverse_lazy("admin:dashboard_user_changelist"),
+                    },
+                    {
+                        "title": _("Groups"),
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Celery Tasks"),
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Clocked"),
+                        "icon": "hourglass_bottom",
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_clockedschedule_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Crontabs"),
+                        "icon": "update",
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_crontabschedule_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Intervals"),
+                        "icon": "timer",
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_intervalschedule_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Periodic tasks"),
+                        "icon": "task",
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_periodictask_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Solar events"),
+                        "icon": "event",
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_solarschedule_changelist"
+                        ),
                     },
                 ],
             },
         ],
     },
-    "TABS": [
-        {
-            "models": [
-                "common.auditlog",
-            ],
-            "items": [
-                {
-                    "title": _("Your custom title"),
-                    "link": reverse_lazy("admin:common_auditlog_changelist"),
-                    # "permission": "sample_app.permission_callback",
-                },
-            ],
-        },
-    ],
 }
 
+UNFOLD_STUDIO_ENABLE_CUSTOMIZER = True
+
+UNFOLD_STUDIO_DEFAULT_FRAGMENT = "color-schemes"
+
+UNFOLD_STUDIO_ENABLE_SAVE = False
+
+UNFOLD_STUDIO_ENABLE_FILEUPLOAD = False
+
+UNFOLD_STUDIO_ALWAYS_OPEN = True
+
+UNFOLD_STUDIO_ENABLE_RESET_PASSWORD = True
+
+
+# =====================================================================
+# CALLBACK FUNCTIONS - Implement these in your app
+# =====================================================================
 
 def dashboard_callback(request, context):
     """
-    Callback to prepare custom variables for index template which is used as dashboard
-    template. It can be overridden in application by creating custom admin/index.html.
+    Prepare custom variables for the dashboard/index template.
+    
+    You can override templates/admin/index.html with your custom dashboard.
+    
+    Args:
+        request: HttpRequest object
+        context: Context dict from admin index view
+        
+    Returns:
+        Modified context dict
     """
     context.update(
         {
-            "sample": "example",  # this will be injected into templates/admin/index.html
+            "app_list": context.get("app_list", []),
+            # Add your custom variables here
+            # "recent_items": get_recent_items(),
         }
     )
     return context
@@ -161,14 +281,61 @@ def dashboard_callback(request, context):
 
 def environment_callback(request):
     """
-    Callback has to return a list of two values represeting text value and the color
-    type of the label displayed in top right corner.
+    Return environment label and color for the top-right corner badge.
+    
+    This helps distinguish between development, staging, and production.
+    
+    Returns:
+        [label_text: str, color_type: str]
+        
+    Color types: "info", "warning", "danger", "success"
     """
-    return ["Production", "danger"] # info, danger, warning, success
+    import os
+    env = os.getenv("DJANGO_ENVIRONMENT", "development")
+    
+    if env == "production":
+        return ["Production", "danger"]
+    elif env == "staging":
+        return ["Staging", "warning"]
+    else:
+        return ["Development", "info"]
 
 
-def badge_callback(request):
-    return 3
+def environment_title_prefix_callback(request):
+    """
+    Return prefix text for the browser title tag.
+    
+    Example: "[Production] Django Admin"
+    
+    Returns:
+        Prefix string or empty string
+    """
+    import os
+    env = os.getenv("DJANGO_ENVIRONMENT", "development")
+    
+    if env != "production":
+        return f"[{env.upper()}]"
+    return ""
+
+
+def dashboard_badge_callback(request):
+    """
+    Return badge count for dashboard navigation item.
+    
+    Returns:
+        Integer count or None to hide badge
+    """
+    # Example: Return count of pending tasks
+    # from myapp.models import Task
+    # return Task.objects.filter(status="pending").count()
+    return None
+
 
 def permission_callback(request):
-    return request.user.has_perm("sample_app.change_model")
+    """
+    Example permission callback for sidebar items.
+    
+    Returns:
+        Boolean indicating if item should be visible
+    """
+    return request.user.is_superuser
