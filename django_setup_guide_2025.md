@@ -113,7 +113,7 @@ This guide covers building a modern Django application with:
 
 ```bash
 # Install Django
-pip install django==6.0.2
+pip install django==5.2
 
 # Create project
 django-admin startproject project .
@@ -400,131 +400,249 @@ pip freeze > requirements.txt
 ### Step 1: Create Docker Compose File
 
 ```yaml
-# docker-compose.yml (Updated for 2025)
+# docker-compose.yml (Updated for Django 5.2, PostgreSQL 17, Python 3.13 - Feb 2026)
 version: '3.10'
 
 services:
-  # PostgreSQL Database
+  # ===========================
+  # PostgreSQL Database Service (v17)
+  # ===========================
   db:
     image: postgres:17-alpine
     container_name: project_db
     environment:
       POSTGRES_DB: ${DB_NAME:-project_db}
       POSTGRES_USER: ${DB_USER:-project_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_here}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - project_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-project_user} -d ${DB_NAME:-project_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - project_network
+      start_period: 10s
     restart: unless-stopped
 
-  # Redis for Caching and Celery
+  # ===========================
+  # Redis Cache & Message Broker (v7)
+  # ===========================
   redis:
     image: redis:7-alpine
     container_name: project_redis
     command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:-redis_password}"
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - project_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - project_network
+      start_period: 5s
     restart: unless-stopped
 
-  # Django Web Application
+  # ===========================
+  # Django Web Application (Gunicorn + Django 5.2)
+  # ===========================
   web:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.13
     container_name: project_web
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py createsuperuser --no-input &&
-             gunicorn project.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+             python manage.py createsuperuser --noinput --username admin --email admin@example.com || true &&
+             gunicorn project.wsgi:application --bind 0.0.0.0:8000 --workers 4 --worker-class sync --max-requests 1000 --timeout 120"
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      - logs_volume:/app/logs
     ports:
       - "8000:8000"
     environment:
-      - DJANGO_ENVIRONMENT=production
-      - DEBUG=False
+      - DJANGO_ENVIRONMENT=${DJANGO_ENVIRONMENT:-local}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-project_db}
+      - DB_USER=${DB_USER:-project_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CACHE_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
-      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin123}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - project_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-    networks:
-      - project_network
+      start_period: 15s
     restart: unless-stopped
 
-  # Celery Worker
+  # ===========================
+  # Celery Worker Service (5.6.2)
+  # ===========================
   celery_worker:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.13
     container_name: project_celery_worker
-    command: celery -A project worker --loglevel=info --concurrency=4
+    command: celery -A project worker --loglevel=info --concurrency=4 --max-tasks-per-child=100 --time-limit=1800
     volumes:
       - .:/app
+      - logs_volume:/app/logs
     environment:
-      - DJANGO_ENVIRONMENT=production
-      - DEBUG=False
+      - DJANGO_ENVIRONMENT=${DJANGO_ENVIRONMENT:-local}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-project_db}
+      - DB_USER=${DB_USER:-project_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
-      - db
       - redis
+      - db
+      - web
     networks:
       - project_network
     restart: unless-stopped
 
-  # Celery Beat (Scheduler)
+  # ===========================
+  # Celery Beat (Task Scheduler - 2.6.0)
+  # ===========================
   celery_beat:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.13
     container_name: project_celery_beat
     command: celery -A project beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app
+      - logs_volume:/app/logs
     environment:
-      - DJANGO_ENVIRONMENT=production
-      - DEBUG=False
+      - DJANGO_ENVIRONMENT=${DJANGO_ENVIRONMENT:-local}
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-project_db}
+      - DB_USER=${DB_USER:-project_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password_here}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
-      - db
       - redis
+      - db
+      - web
     networks:
       - project_network
     restart: unless-stopped
 
+  # ===========================
+  # Celery Flower (Monitoring Dashboard)
+  # ===========================
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_VERSION=3.13
+    container_name: project_flower
+    command: celery -A project flower --port=5555 --broker=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-admin123}
+    volumes:
+      - .:/app
+      - logs_volume:/app/logs
+    ports:
+      - "5555:5555"
+    environment:
+      - DJANGO_ENVIRONMENT=${DJANGO_ENVIRONMENT:-local}
+      - DEBUG=${DEBUG:-False}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - project_network
+    restart: unless-stopped
+
+  # ===========================
+  # Nginx Reverse Proxy & Static File Serving
+  # ===========================
+  nginx:
+    image: nginx:alpine
+    container_name: project_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+      - logs_volume:/var/log/nginx
+    depends_on:
+      - web
+    networks:
+      - project_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+# ===========================
+# Networks
+# ===========================
+networks:
+  project_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ===========================
+# Volumes
+# ===========================
 volumes:
   postgres_data:
     driver: local
@@ -534,16 +652,14 @@ volumes:
     driver: local
   media_volume:
     driver: local
-
-networks:
-  project_network:
-    driver: bridge
+  logs_volume:
+    driver: local
 ```
 
 ### Step 2: Create Dockerfile
 
 ```dockerfile
-# docker/Dockerfile (Updated for Python 3.13 & Django 6.0)
+# Dockerfile (Updated for Django 5.2, Python 3.13, Feb 2026)
 FROM python:3.13-slim
 
 WORKDIR /app
@@ -552,46 +668,67 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DJANGO_SETTINGS_MODULE=project.settings
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     gcc \
     python3-dev \
+    libpq-dev \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app user
+# Create application user for security
 RUN useradd -m -u 1000 appuser
 
-# Copy requirements
-COPY requirements/base.txt .
-COPY requirements/production.txt .
+# Upgrade pip, setuptools, and wheel
+RUN pip install --upgrade pip setuptools wheel
+
+# Copy requirements files
+COPY requirements/ /tmp/requirements/
 
 # Install Python dependencies
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r production.txt
+RUN pip install -r /tmp/requirements/base.txt
 
-# Copy project
+# Copy project files
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p /app/logs && chown -R appuser:appuser /app
+RUN mkdir -p /app/logs /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app
+
+# Collect static files
+RUN python manage.py collectstatic --noinput || true
 
 # Create superuser environment variables
 ENV DJANGO_SUPERUSER_USERNAME=admin \
     DJANGO_SUPERUSER_EMAIL=admin@example.com \
     DJANGO_SUPERUSER_PASSWORD=admin123
 
-# Collect static files
-RUN python manage.py collectstatic --noinput || true
-
-# Switch to non-root user
+# Switch to non-root user for security
 USER appuser
 
 EXPOSE 8000
 
-CMD ["gunicorn", "project.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
+
+# Run Gunicorn
+CMD ["gunicorn", \
+     "project.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--worker-class", "sync", \
+     "--max-requests", "1000", \
+     "--max-requests-jitter", "50", \
+     "--timeout", "120", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "info"]
 ```
 
 ### Step 3: Run Services with Docker
@@ -740,7 +877,7 @@ project/
 
 ```python
 """
-Base settings for Django 6.0 project.
+Base settings for Django 5.2 project.
 Uses pathlib and modern Python features.
 """
 
@@ -758,7 +895,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key")
 DEBUG = os.getenv("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-# Application definition (Django 6.0 compatible)
+# Application definition (Django 5.2 compatible)
 INSTALLED_APPS = [
     # Unfold admin (before django.contrib.admin)
     "unfold",
@@ -1244,7 +1381,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "project"
 version = "1.0.0"
-description = "Modern Django 6.0 Project"
+description = "Modern Django 5.2 Project"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
