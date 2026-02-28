@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from .unfold_config import *
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Determine which environment we're in
 ENVIRONMENT = os.getenv('DJANGO_ENVIRONMENT', 'local')
@@ -179,21 +180,21 @@ Session storage and general caching.
 """
 
 # Redis Caching (5.4.0)
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("CACHE_URL", "redis://:redis_password@localhost:6379/1"),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "max_connections": 50,
-                "timeout": 20,
-            },
-            "SOCKET_CONNECT_TIMEOUT": 5,
-            "SOCKET_TIMEOUT": 5,
-        }
-    }
-}
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": os.getenv("CACHE_URL", "redis://:redis_password@localhost:6379/1"),
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "CONNECTION_POOL_KWARGS": {
+#                 "max_connections": 50,
+#                 "timeout": 20,
+#             },
+#             "SOCKET_CONNECT_TIMEOUT": 5,
+#             "SOCKET_TIMEOUT": 5,
+#         }
+#     }
+# }
 
 # Use Redis for session storage
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
